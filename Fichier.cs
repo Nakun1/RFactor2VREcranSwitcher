@@ -18,6 +18,7 @@
         json,
         JSON,
         ecran,
-        vr
+        vr,
+        stream
     }
 }

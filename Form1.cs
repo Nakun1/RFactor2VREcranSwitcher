@@ -33,6 +33,7 @@ namespace RFactor2VREcranSwitcher
                 {
                     string fichierEcran = fichier.Path.Replace("." + fichier.Extension.ToString(), ".ecran");
                     string fichierVR = fichier.Path.Replace("." + fichier.Extension.ToString(), ".vr");
+                    string fichierStream = fichier.Path.Replace("." + fichier.Extension.ToString(), ".stream");
 
                     // Si on a qu'un fichier, on va le dupliquer en .VR pour faciliter la vie de l'utilisateur.
                     if (!File.Exists(fichierVR) && !File.Exists(fichierEcran))
@@ -51,25 +52,52 @@ namespace RFactor2VREcranSwitcher
                         }
                     }// End if premier lancement
 
+                    // Si on a déjà un mode VR et un mode écran mais pas de mode stream, on créé celui-ci
+                    if (!((File.Exists(fichierVR) && File.Exists(fichierStream)) ||
+                        (File.Exists(fichierEcran) && File.Exists(fichierStream)) ||
+                        (File.Exists(fichierVR) && File.Exists(fichierEcran))))
+                    {
+                        if (File.Exists(fichierEcran))
+                            File.Copy(fichierEcran, fichierStream);
+                        else
+                            File.Copy(fichier.Path, fichierStream);
+                    }
 
-                    // Si on a un .ini et un .VR, on passe en mode VR
-                    if (File.Exists(fichierVR) && !File.Exists(fichierEcran))
+                    Mode modeActuel = Mode.None;
+
+                    if (File.Exists(fichierVR) && File.Exists(fichierStream) && !File.Exists(fichierEcran))
+                        modeActuel = Mode.Ecran;
+                    else if (!File.Exists(fichierVR) && File.Exists(fichierStream) && File.Exists(fichierEcran))
+                        modeActuel = Mode.VR;
+                    else if (!File.Exists(fichierStream) && File.Exists(fichierVR) && File.Exists(fichierEcran))
+                        modeActuel = Mode.Stream;
+
+
+                    // Si on est en mode Ecran, on passe en mode VR
+                    if (modeActuel == Mode.Ecran)
                     {
                         File.Move(fichier.Path, fichierEcran);
                         File.Move(fichierVR, fichier.Path);
                         mode = Mode.VR;
                     }
-                    // Si on a un .ini et un .Ecran, on passe en mode Ecran
-                    else if (!File.Exists(fichierVR) && File.Exists(fichierEcran))
+                    // Si on est en mode VR, on passe en mode stream
+                    else if (modeActuel == Mode.VR)
                     {
                         File.Move(fichier.Path, fichierVR);
+                        File.Move(fichierStream, fichier.Path);
+                        mode = Mode.Stream;
+                    }
+                    // Si on est en mode Stream, on passe en mode Ecran
+                    else if (modeActuel == Mode.Stream)
+                    {
+                        File.Move(fichier.Path, fichierStream);
                         File.Move(fichierEcran, fichier.Path);
                         mode = Mode.Ecran;
                     }
                     // Si on a un .Ecran et un .jeu, soit il y'a un bug soit c'est l'utilisateur le bug
-                    else if (File.Exists(fichierVR) && File.Exists(fichierEcran))
+                    else if (File.Exists(fichierVR) && File.Exists(fichierEcran) && File.Exists(fichierStream))
                     {
-                        throw new Exception("Vous ne devez pas avoir un " + fichierVR + " ET un " + fichierEcran + '.');
+                        throw new Exception("Vous ne devez pas avoir un " + fichierVR + " ET un " + fichierEcran + " ET un " + fichierStream + '.');
                     }
                 }
 
@@ -115,6 +143,9 @@ namespace RFactor2VREcranSwitcher
 
                     if (fichierPath.EndsWith(".ini"))
                         fichiers.Add(new Fichier(fichierPath, Extension.ini));
+
+                    if (fichierPath.EndsWith(".stream"))
+                        fichiers.Add(new Fichier(fichierPath, Extension.stream));
                 }
             }
 
@@ -194,8 +225,10 @@ namespace RFactor2VREcranSwitcher
         VR = 1,
 
         /// <summary>
-        /// Écran.
+        /// Triple écran.
         /// </summary>
-        Ecran = 2
+        Ecran = 2,
+
+        Stream = 3
     }
 }
